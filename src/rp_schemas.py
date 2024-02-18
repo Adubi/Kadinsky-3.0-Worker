@@ -11,5 +11,6 @@ INPUT_SCHEMA = {
     'init_image': {
         'type': str,
         'required': False,
+        'default': ""
     }
 }

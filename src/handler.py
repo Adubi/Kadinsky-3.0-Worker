@@ -10,23 +10,20 @@ from runpod.serverless.utils import rp_upload, rp_cleanup
 from runpod.serverless.utils.rp_validator import validate
 from rp_schemas import INPUT_SCHEMA
 
-pipe_1_1 = AutoPipelineForText2Image.from_pretrained("kandinsky-community/kandinsky-3", variant="fp16", torch_dtype=torch.float16)
-pipe_1_1.enable_sequential_cpu_offload()
+pipe = AutoPipelineForText2Image.from_pretrained("kandinsky-community/kandinsky-3", variant="fp16", torch_dtype=torch.float16)
+pipe.enable_sequential_cpu_offload()
 
 pipe_1_2 = AutoPipelineForImage2Image.from_pretrained("kandinsky-community/kandinsky-3", variant="fp16", torch_dtype=torch.float16)
 pipe_1_2.enable_sequential_cpu_offload()
 
-def _save_and_upload_images(images, job_id):
+def _save_and_upload_images(image, job_id):
     os.makedirs(f"/{job_id}", exist_ok=True)
-    image_urls = []
-    for index, image in enumerate(images):
-        image_path = os.path.join(f"/{job_id}", f"{index}.png")
-        image.save(image_path)
-
-        image_url = rp_upload.upload_image(job_id, image_path)
-        image_urls.append(image_url)
+    image_path = os.path.join(f"/{job_id}", "image.png")
+    image.save(image_path)
+    image_url = rp_upload.upload_image(job_id, image_path)
     rp_cleanup.clean([f"/{job_id}"])
-    return image_urls
+    return [image_url]
+
 
 
 def generate_image(job):
@@ -50,7 +47,7 @@ def generate_image(job):
     
 
     if init_image is None:
-        image = pipe_1_1(validated_input['prompt'], num_inference_steps=25, generator=generator).images[0]
+        image = pipe(validated_input['prompt'], num_inference_steps=25, generator=generator).images[0]
     else:
         image = pipe_1_2(validated_input['prompt'], image=image, strength=0.75, num_inference_steps=25, generator=generator).images[0]
 
